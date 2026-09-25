@@ -1,6 +1,7 @@
 import streamlit as st
 import sqlite3
 from google import genai
+import time
 
 st.set_page_config(page_title="FitBuddy - AI Fitness Plan Generator", page_icon="💪", layout="centered")
 
@@ -9,8 +10,7 @@ st.markdown("<p style='text-align:center;'>Personalized workout plans & nutritio
 
 # --- Database for Skill Wallet (SQLite) ---
 conn_init = sqlite3.connect("fitbuddy.db")
-conn_init.execute("""CREATE TABLE IF NOT EXISTS users 
-(id INTEGER PRIMARY KEY, name TEXT, age INTEGER, weight REAL, height REAL, goal TEXT, intensity TEXT, plan TEXT)""")
+conn_init.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, weight REAL, height REAL, goal TEXT, intensity TEXT, plan TEXT)")
 conn_init.commit()
 conn_init.close()
 
@@ -26,26 +26,25 @@ else:
 
 client = genai.Client(api_key=api_key.strip())
 
-# --- FIX FOR 503 ERROR - Fallback Models ---
+# --- FIX FOR 503 ERROR - Auto retry, never save error ---
 def generate_with_fallback(prompt_text):
-    models_to_try = ["gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-lite-latest"]
-    last_error = ""
-    for model_name in models_to_try:
-        try:
-            response = client.models.generate_content(model=model_name, contents=prompt_text)
-            return response.text
-        except Exception as e:
-            last_error = str(e)
-            if "503" in last_error or "UNAVAILABLE" in last_error or "overloaded" in last_error.lower():
+    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-lite-latest"]
+    for attempt in range(3):
+        for model_name in models_to_try:
+            try:
+                response = client.models.generate_content(model=model_name, contents=prompt_text)
+                if response.text and "503" not in response.text and "UNAVAILABLE" not in response.text:
+                    return response.text
+            except Exception as e:
+                time.sleep(1)
                 continue
-            else:
-                continue
-    return f"Gemini is busy (503). Please click the button again after 10 seconds! Error: {last_error}"
+        time.sleep(2)
+    return None
 
 # --- Tabs as per requirement ---
 tab1, tab2, tab3 = st.tabs(["Scenario 1: Generate Plan", "Scenario 2: Feedback Update", "Scenario 3: Nutrition Tip"])
 
-# ================= TAB 1 =================
+# ============== TAB 1 ==============
 with tab1:
     st.subheader("Generate Your Personalized Plan")
     with st.form("fitbuddy_form"):
@@ -57,9 +56,9 @@ with tab1:
         with col2:
             height = st.number_input("Height (cm)", 100.0, 250.0, 165.0)
             gender = st.selectbox("Gender", ["Female", "Male", "Other"])
-        
+
         intensity = st.selectbox("Workout Intensity (High/Medium/Low)", ["High", "Medium", "Low"])
-        activity = st.radio("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"], horizontal=True)
+        activity = st.selectbox("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"], horizontal=True)
         goal = st.selectbox("Goal", ["Weight Loss", "Muscle Gain", "General Wellness"])
         diet = st.radio("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian", "Jain"], horizontal=True)
         allergies = st.text_input("Any Allergies / Avoid? (Optional)", placeholder="Ex: Peanuts, Milk")
@@ -71,13 +70,17 @@ with tab1:
         else:
             try:
                 bmi_val = weight / ((height / 100) ** 2)
-                prompt = f"""Create personalized 7-day workout plan for {name}, Age {age}, {gender}, {weight}kg, {height}cm, BMI {bmi_val:.1f}, Activity {activity}, Goal {goal}, Intensity {intensity}, Diet {diet}, Allergies {allergies}.
+                prompt = f"""Create personalized 7-day workout plan for {name}, Age {age}, {gender}, {weight}kg, {height}cm, BMI {bmi_val:.1f}, Goal {goal}, Intensity {intensity}, Activity {activity}, Diet {diet}, Allergies {allergies}.
                 Include: day-wise 7-day schedule: exercise name, sets, reps, duration.
                 Also include exactly 1 nutrition tip and 1 recovery tip for goal {goal}.
                 Keep it structured and goal-specific. Mention diet {diet} clearly."""
 
                 with st.spinner("FitBuddy AI is creating your plan..."):
                     plan_text = generate_with_fallback(prompt)
+
+                if not plan_text:
+                    st.error("Gemini is busy (503 High Demand). Please wait 20 seconds and click Generate again - it will work!")
+                    st.stop()
 
                 # Save to SQLite - Required
                 conn = sqlite3.connect("fitbuddy.db")
@@ -92,19 +95,18 @@ with tab1:
 
                 st.success(f"Your Plan is Ready, {name}! 💪")
                 st.markdown(plan_text)
-                st.balloons()
                 st.download_button("Download Plan", data=plan_text, file_name=f"FitBuddy_Plan_{name}.txt")
 
             except Exception as e:
                 st.error(f"Error: {e}. Click Generate again!")
 
-# ================= TAB 2 =================
+# ============== TAB 2 ==============
 with tab2:
     st.subheader("Update Plan with Feedback")
     st.caption("Have a plan? Give feedback like 'more cardio' or 'include rest days'")
     fb_name = st.text_input("Enter Your Name", key="fb_name")
     feedback = st.text_area("Your Feedback", placeholder="Ex: include more cardio, less strength")
-    
+
     if st.button("Update My Plan with AI"):
         if not fb_name.strip() or not feedback.strip():
             st.error("Please enter both Name and Feedback")
@@ -129,25 +131,29 @@ with tab2:
             if not prev_plan:
                 st.error("No previous plan found for this name. Generate in Tab 1 first.")
             else:
-                prompt2 = f"Previous plan: {prev_plan}. User feedback: {feedback}. Goal: {prev_goal}. Regenerate updated 7-day workout plan based on feedback. Keep structure same but apply feedback."
+                prompt2 = f"Previous plan: {prev_plan}. User feedback: {feedback}. Goal: {prev_goal}. Regenerate updated 7-day plan based on feedback. Keep structured."
                 with st.spinner("Updating plan based on feedback..."):
                     updated_plan = generate_with_fallback(prompt2)
+                if not updated_plan:
+                    st.error("Gemini busy, wait 20 sec and click again!")
+                    st.stop()
                 st.success("Updated Plan Ready!")
                 st.markdown(updated_plan)
-                st.download_button("Download Updated Plan", data=updated_plan, file_name=f"Updated_Plan_{fb_name_clean}.txt", key="dl2")
+                st.download_button("Download Updated Plan", data=updated_plan, file_name=f"Updated_Plan_{fb_name_clean}.txt")
 
-# ================= TAB 3 =================
+# ============== TAB 3 ==============
 with tab3:
     st.subheader("Get Nutrition / Recovery Tip")
     tip_goal = st.selectbox("Select Goal", ["Weight Loss", "Muscle Gain", "General Wellness"], key="tip_goal")
     if st.button("Get Tip"):
-        prompt3 = f"Give a concise and relevant nutrition or recovery tip for fitness goal {tip_goal}. Example: include protein in post-workout meal, hydration, sleep. Make it practical and short (50-80 words)."
+        prompt3 = f"Give a concise and relevant nutrition or recovery tip for fitness goal {tip_goal}. Example: include protein in your post-workout meal for muscle gain. 60 words."
         with st.spinner("Getting tip..."):
             tip_text = generate_with_fallback(prompt3)
-        st.success(tip_text)
+        if not tip_text:
+            st.error("Gemini busy, click again after 10 sec!")
+        else:
+            st.success(tip_text)
 
 # --- Footer as per requirement ---
 st.markdown("---")
 st.caption("Made with love by Team N3Bee - Anushree P, Ahammed Sha, Avinth Atchai C, Afsal A | Powered by Gemini | FastAPI + SQLite + Gemini + HTML")
-
-# Note for Skill Wallet Epic 5 - This code uses SQLite + Gemini + Session fallback to ensure Feedback Update works even after Streamlit Cloud reboot.
