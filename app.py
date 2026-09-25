@@ -1,43 +1,68 @@
 import streamlit as st
 from google import genai
 
-st.set_page_config(page_title="N3Bee Diet Planner", page_icon="🐝")
+st.set_page_config(page_title="N3Bee - AI Diet Planner", page_icon="🥗", layout="centered")
+st.markdown("<h1 style='text-align:center; color:#2D7D32;'>🥗 N3Bee - Personalized AI Diet Planner</h1>", unsafe_allow_html=True)
 
-st.title("🐝 N3Bee")
-st.write("Personalized AI Diet Planner")
-
-api_key = st.secrets.get("GEMINI_API_KEY") if "GEMINI_API_KEY" in st.secrets else None
+api_key = None
+try:
+    if "GEMINI_API_KEY" in st.secrets:
+        api_key = st.secrets["GEMINI_API_KEY"]
+except:
+    pass
 
 if not api_key:
-    api_key = st.sidebar.text_input("Enter API Key", type="password")
+    with st.sidebar:
+        st.header("🔑 API Configuration")
+        user_input = st.text_input("Enter Gemini API Key", type="password")
+        if user_input:
+            api_key = user_input.strip()
 
 if not api_key:
-    st.warning("Enter API key to continue")
+    st.warning("Please enter your Gemini API Key in sidebar to continue.")
     st.stop()
 
 client = genai.Client(api_key=api_key)
 
-age = st.number_input("Age", 10, 100, 23)
-gender = st.selectbox("Gender", ["Female", "Male", "Other"])
-weight = st.number_input("Weight kg", 30.0, 200.0, 60.0)
-height = st.number_input("Height cm", 100.0, 250.0, 165.0)
-activity = st.selectbox("Activity", ["Sedentary", "Lightly Active", "Very Active"])
-goal = st.radio("Goal", ["Weight Loss", "Maintain", "Weight Gain"])
-diet = st.radio("Diet", ["Vegetarian", "Non-Vegetarian", "Vegan", "Jain"])
-avoid = st.text_input("Avoid foods")
-
-if st.button("Generate Plan"):
-    bmi = weight / ((height/100)**2)
-    prompt = f"Create beautiful 7 day Indian diet plan with table and emojis for age {age} gender {gender} weight {weight} height {height} bmi {bmi:.1f} activity {activity} goal {goal} diet {diet} avoid {avoid}. Make table with Day Breakfast Lunch Dinner Snacks Calories. Give aesthetic outstanding output."
+with st.form("diet_form"):
+    col1, col2 = st.columns(2)
+    with col1:
+        age = st.number_input("Age", 10, 100, 23)
+        weight = st.number_input("Weight (kg)", 30.0, 200.0, 60.0)
+        height = st.number_input("Height (cm)", 100.0, 250.0, 165.0)
+    with col2:
+        gender = st.selectbox("Gender", ["Female", "Male", "Other"])
     
-    with st.spinner("Generating..."):
-        try:
-            res = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt)
-            st.success(f"Plan Ready! BMI {bmi:.1f}")
-            st.markdown(res.text)
-            st.balloons()
-        except Exception as e:
-            st.error(str(e))
+    activity = st.radio("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
+    goal = st.radio("Goal", ["Weight Loss", "Maintain Healthy Weight", "Weight Gain / Muscle Gain"])
+    diet_pref = st.radio("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian", "Jain"])
+    allergies = st.text_input("Any Allergies / Avoid? (Optional)", placeholder="Ex: Peanuts, Milk")
+    submit = st.form_submit_button("Generate My Diet Plan")
 
-st.markdown("---")
-st.markdown("<div style='text-align:center'><b>Team N3Bee</b><br>Anushree P | Ahammed Sha | Avinth Atchai C | Afsal A</div>", unsafe_allow_html=True)
+if submit:
+    bmi_val = weight / ((height / 100) ** 2)
+    prompt = f"Create 7-day Indian diet plan. Age {age}, {gender}, {weight}kg, {height}cm, BMI {bmi_val:.1f}, {activity}, Goal {goal}, Diet {diet_pref}, Avoid {allergies}. Give breakfast lunch dinner snacks with calories."
+
+    with st.spinner("N3Bee AI is creating your plan... 2 sec..."):
+        try:
+            # LITE model = INSTANT & never busy
+            response = client.models.generate_content(
+                model="gemini-2.5-flash-lite",
+                contents=prompt
+            )
+            st.success(f"Your Plan is Ready! ⚡")
+            st.markdown(response.text)
+            st.balloons()
+            st.download_button("Download Plan", data=response.text, file_name="N3Bee_Diet_Plan.txt")
+        except Exception as e:
+            # If lite busy, try 3.5-flash-lite
+            try:
+                response = client.models.generate_content(model="gemini-flash-lite-latest", contents=prompt)
+                st.success("Your Plan is Ready! ⚡")
+                st.markdown(response.text)
+                st.balloons()
+            except Exception as e2:
+                st.error(f"Error: {e2}. Click Generate again!")
+
+st.divider()
+st.caption("Made with love by Team N3Bee - Anushree P, Ahammed Sha, Avinth Atchai C, Afsal A | Powered by Gemini")
