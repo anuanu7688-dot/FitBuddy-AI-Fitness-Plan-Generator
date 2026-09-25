@@ -58,9 +58,9 @@ with tab1:
             gender = st.selectbox("Gender", ["Female", "Male", "Other"])
 
         intensity = st.selectbox("Workout Intensity (High/Medium/Low)", ["High", "Medium", "Low"])
-        activity = st.selectbox("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"], horizontal=True)
+        activity = st.selectbox("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
         goal = st.selectbox("Goal", ["Weight Loss", "Muscle Gain", "General Wellness"])
-        diet = st.radio("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian", "Jain"], horizontal=True)
+        diet = st.radio("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian", "Jain"],)
         allergies = st.text_input("Any Allergies / Avoid? (Optional)", placeholder="Ex: Peanuts, Milk")
         submitted = st.form_submit_button("Generate 7-Day Plan")
 
