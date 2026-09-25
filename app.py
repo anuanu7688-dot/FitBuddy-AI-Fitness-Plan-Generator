@@ -2,7 +2,7 @@ import streamlit as st
 import sqlite3
 from google import genai
 
-st.set_page_config(title="FitBuddy - AI Fitness Plan Generator", page_icon="💪", layout="centered")
+st.set_page_config(page_title="FitBuddy - AI Fitness Plan Generator", page_icon="💪", layout="centered")
 
 st.markdown("<h2 style='text-align:center; color:#2D7D32;'>💪 FitBuddy - AI Fitness Plan Generator</h2>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center;'>Personalized workout plans & nutrition tips using Gemini AI</p>", unsafe_allow_html=True)
