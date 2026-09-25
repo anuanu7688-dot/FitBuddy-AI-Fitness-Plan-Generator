@@ -41,7 +41,7 @@ tab1, tab2, tab3 = st.tabs(["Scenario 1: Generate Plan", "Scenario 2: Feedback U
 
 with tab1:
     with st.form("fitbuddy_form"):
-        name = st.text_input("Name", placeholder="Anushree P")
+        name = st.text_input("Name", placeholder="Your Name")
         col1, col2 = st.columns(2)
         with col1:
             age = st.number_input("Age", 10, 100, 23)
@@ -116,16 +116,35 @@ with tab2:
 
 with tab3:
     st.subheader("Get Nutrition / Recovery Tip")
-    tip_goal = st.selectbox("Select Goal", ["Weight Loss", "Muscle Gain", "General Wellness"], key="tip_goal")
-    tip_btn = st.button("Get Tip")
+    with st.form("tip_form"):
+        tip_goal = st.selectbox("Select Goal", ["Weight Loss", "Muscle Gain", "General Wellness"])
+        tip_btn = st.form_submit_button("Get Tip")
+    
     if tip_btn:
-        prompt3 = f"Give a concise and relevant nutrition or recovery tip for fitness goal {tip_goal}. Example: include protein in post-workout meal for muscle gain. Give practical tip."
+        prompt3 = f"Give a concise and relevant nutrition or recovery tip for fitness goal {tip_goal}. Example: include protein in post-workout meal for muscle gain. Give practical 2-3 lines tip."
         with st.spinner("Getting tip..."):
-            response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt3)
-            st.info(response.text)
+            try:
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash-lite", 
+                    contents=prompt3
+                )
+                st.success(f"Tip for {tip_goal}:")
+                st.info(response.text)
+                st.balloons()
+            except Exception as e:
+                try:
+                    response = client.models.generate_content(
+                        model="gemini-flash-lite-latest", 
+                        contents=prompt3
+                    )
+                    st.success(f"Tip for {tip_goal}:")
+                    st.info(response.text)
+                    st.balloons()
+                except Exception as e2:
+                    st.error(f"Gemini busy: {e2}. Click Get Tip again!")
 
 st.divider()
-st.caption("Made with love by Team N3Bee - Anushree P, Ahammed Sha, Avinth Atchai C, Afsal A | Powered by Gemini | FastAPI + SQLite + Gemini + HTML/CSS")
+st.caption("Made with love by Team N3Bee - Anushree P, Ahammed Sha, Avinth Atchai C, Afsal A | Powered by Gemini | FastAPI + SQLite + Gemini + HTML")
 
 # --- FastAPI endpoints note for Skill Wallet Epic 5 ---
 # This Streamlit app satisfies all features. For API docs, same logic can be wrapped in FastAPI:
