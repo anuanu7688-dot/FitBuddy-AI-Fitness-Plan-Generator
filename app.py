@@ -1,86 +1,90 @@
 import streamlit as st
 from google import genai
-from google.genai import errors
-import time
 
-# --- Page Config ---
-st.set_page_config(
-    page_title="N3Bee - AI Diet Planner",
-    page_icon="🥗",
-    layout="centered"
-)
+st.set_page_config(page_title="N3Bee - AI Diet Planner", page_icon="🥗", layout="centered")
 
-# --- CSS for Professional Look ---
-st.markdown("""
-<style>
-    .main-title { text-align: center; color: #2E7D32; }
-    .stButton>button { background-color: #2E7D32; color: white; width: 100%; border-radius: 10px; }
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("<h1 class='main-title'>🥗 N3Bee - Personalized AI Diet Planner</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center; color:#2E7D32;'>🥗 N3Bee - Personalized AI Diet Planner</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center;'>Your Smart Nutrition Assistant powered by Gemini</p>", unsafe_allow_html=True)
 st.divider()
 
-# --- API KEY LOGIC (Standard & Secure) ---
-# Priority 1: Check Streamlit Secrets (for auto-open)
-# Priority 2: Check Sidebar input (for user own key)
-
+# --- API KEY LOGIC (Supports both Secrets and Sidebar) ---
 api_key = None
-
-# Try to get from Secrets first
 try:
     if "GEMINI_API_KEY" in st.secrets:
         api_key = st.secrets["GEMINI_API_KEY"]
-except Exception:
+except:
     api_key = None
 
-# If not in Secrets, ask in Sidebar
 if not api_key:
     with st.sidebar:
         st.header("🔑 API Configuration")
-        st.info("Enter your Gemini API Key to use the app")
         st.link_button("Get Free Gemini Key", "https://aistudio.google.com/app/apikey")
-        api_key_input = st.text_input("Enter Gemini API Key", type="password", placeholder="Paste AQ... or AIza... key here")
-        if api_key_input:
-            api_key = api_key_input.strip()
-        st.divider()
-        st.caption("Your key is safe. It is not stored.")
+        user_input = st.text_input("Enter Gemini API Key", type="password", placeholder="Paste AQ... or AIza... key")
+        if user_input:
+            api_key = user_input.strip()
+        st.caption("Your key is safe. Not stored.")
 
-# Stop if no key
 if not api_key:
-    st.warning("⚠️ Please enter your Gemini API Key in the sidebar to continue.")
+    st.warning("Please enter your Gemini API Key in sidebar to continue.")
     st.stop()
 
-# --- Gemini Client Initialization (Works for both AIza and AQ keys) ---
 try:
     client = genai.Client(api_key=api_key)
 except Exception as e:
-    st.error(f"❌ Invalid API Key format. Error: {e}")
+    st.error(f"Invalid API Key: {e}")
     st.stop()
 
-# --- User Input Form ---
+# --- Input Form ---
 with st.form("diet_form"):
     col1, col2 = st.columns(2)
     with col1:
-        age = st.number_input("Age", min_value=10, max_value=100, value=22)
-        weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0, value=60.0)
-        height = st.number_input("Height (cm)", min_value=100.0, max_value=250.0, value=165.0)
+        age = st.number_input("Age", 10, 100, 22)
+        weight = st.number_input("Weight (kg)", 30.0, 200.0, 60.0)
+        height = st.number_input("Height (cm)", 100.0, 250.0, 165.0)
     with col2:
         gender = st.selectbox("Gender", ["Female", "Male", "Other"])
         activity = st.selectbox("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
-        goal = st.selectbox("Goal", ["Weight Loss", "Weight Gain", "Muscle Gain", "Maintain Healthy Weight", "General Fitness"])
+        goal = st.selectbox("Goal", ["Weight Loss", "Weight Gain", "Muscle Gain", "Maintain Healthy Weight"])
 
     diet_pref = st.selectbox("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian", "Jain"])
-    allergies = st.text_input("Any Allergies / Food to Avoid? (Optional)", placeholder="Ex: Peanuts, Mushroom, Milk")
-    
-    submit_button = st.form_submit_button("✨ Generate My Diet Plan")
+    allergies = st.text_input("Any Allergies / Avoid? (Optional)", placeholder="Ex: Peanuts, Milk")
+    submit = st.form_submit_button("Generate My Diet Plan")
 
-# --- Generate Logic ---
-if submit_button:
-    # Calculate BMI for better prompt
+if submit:
     bmi = weight / ((height/100) ** 2)
     
-    prompt = f"""
-    You are a certified professional nutritionist and dietitian for N3Bee App.
-    Create a highly personalized, practical
+        prompt_text = (
+        "You are a certified nutritionist for N3Bee App. "
+        f"Create a personalized 7-day diet plan for user: Age {age}, Gender {gender}, "
+        f"Weight {weight}kg, Height {height}cm, BMI {bmi:.1f}, "
+        f"Activity {activity}, Goal {goal}, Diet {diet_pref}, Allergies {allergies}. "
+        f"Give daily calorie target, then for each 7 days give Breakfast, Mid Snack, Lunch, Evening Snack, Dinner "
+        f"with Indian foods for {diet_pref} with portion size and calories. "
+        f"Also give 3 tips for {goal}, water intake, exercise suggestion. "
+        f"Use tables, emojis, simple friendly language. Add disclaimer at end: AI advice only, consult doctor."
+    )
+
+    with st.spinner("N3Bee AI is creating your plan..."):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt_text
+            )
+            if response.text:
+                st.success("Your Personalized Diet Plan is Ready!")
+                st.markdown(response.text)
+                st.balloons()
+                st.download_button("Download Plan", data=response.text, file_name="N3Bee_Diet_Plan.txt")
+            else:
+                st.error("No response. Try again.")
+        except Exception as e:
+            msg = str(e).lower()
+            if "api_key" in msg or "invalid" in msg:
+                st.error("Invalid or expired API Key. Create new from aistudio.google.com/app/apikey")
+            elif "quota" in msg or "429" in msg:
+                st.error("API Limit Reached. Wait 1 minute or use another Gmail key.")
+            else:
+                st.error(f"Error: {e}")
+
+st.divider()
+st.caption("Made with love by Anusri | N3Bee | Powered by Gemini 2.5 Flash")
