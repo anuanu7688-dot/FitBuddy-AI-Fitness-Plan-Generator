@@ -38,10 +38,10 @@ with st.form("diet_form"):
         weight = st.number_input("Weight (kg)", 30.0, 200.0, 60.0)
         height = st.number_input("Height (cm)", 100.0, 250.0, 165.0)
     with col2:
-        gender = st.selectbox("Gender", ["Female", "Male", "Other"])
-        activity = st.selectbox("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
-        goal = st.selectbox("Goal", ["Weight Loss", "Weight Gain", "Muscle Gain", "Maintain Healthy Weight"])
-    diet_pref = st.selectbox("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian", "Jain"])
+        gender = st.radio("Gender", ["Female", "Male", "Other"])
+        activity = st.radio("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
+        goal = st.radio("Goal", ["Weight Loss", "Weight Gain", "Muscle Gain", "Maintain Healthy Weight"])
+    diet_pref = st.radio("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian", "Jain"])
     allergies = st.text_input("Any Allergies / Avoid? (Optional)", placeholder="Ex: Peanuts, Milk")
     submit = st.form_submit_button("Generate My Diet Plan")
 
