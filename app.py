@@ -2,12 +2,10 @@ import streamlit as st
 from google import genai
 
 st.set_page_config(page_title="N3Bee - AI Diet Planner", page_icon="🥗", layout="centered")
-
 st.markdown("<h1 style='text-align:center; color:#2E7D32;'>🥗 N3Bee - Personalized AI Diet Planner</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center;'>Your Smart Nutrition Assistant powered by Gemini</p>", unsafe_allow_html=True)
 st.divider()
 
-# --- API KEY LOGIC (Supports both Secrets and Sidebar) ---
 api_key = None
 try:
     if "GEMINI_API_KEY" in st.secrets:
@@ -22,7 +20,6 @@ if not api_key:
         user_input = st.text_input("Enter Gemini API Key", type="password", placeholder="Paste AQ... or AIza... key")
         if user_input:
             api_key = user_input.strip()
-        st.caption("Your key is safe. Not stored.")
 
 if not api_key:
     st.warning("Please enter your Gemini API Key in sidebar to continue.")
@@ -34,7 +31,6 @@ except Exception as e:
     st.error(f"Invalid API Key: {e}")
     st.stop()
 
-# --- Input Form ---
 with st.form("diet_form"):
     col1, col2 = st.columns(2)
     with col1:
@@ -45,31 +41,17 @@ with st.form("diet_form"):
         gender = st.selectbox("Gender", ["Female", "Male", "Other"])
         activity = st.selectbox("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
         goal = st.selectbox("Goal", ["Weight Loss", "Weight Gain", "Muscle Gain", "Maintain Healthy Weight"])
-
     diet_pref = st.selectbox("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian", "Jain"])
     allergies = st.text_input("Any Allergies / Avoid? (Optional)", placeholder="Ex: Peanuts, Milk")
     submit = st.form_submit_button("Generate My Diet Plan")
 
 if submit:
     bmi = weight / ((height/100) ** 2)
-    
-        prompt_text = (
-        "You are a certified nutritionist for N3Bee App. "
-        f"Create a personalized 7-day diet plan for user: Age {age}, Gender {gender}, "
-        f"Weight {weight}kg, Height {height}cm, BMI {bmi:.1f}, "
-        f"Activity {activity}, Goal {goal}, Diet {diet_pref}, Allergies {allergies}. "
-        f"Give daily calorie target, then for each 7 days give Breakfast, Mid Snack, Lunch, Evening Snack, Dinner "
-        f"with Indian foods for {diet_pref} with portion size and calories. "
-        f"Also give 3 tips for {goal}, water intake, exercise suggestion. "
-        f"Use tables, emojis, simple friendly language. Add disclaimer at end: AI advice only, consult doctor."
-    )
+    prompt_text = f"You are a nutritionist for N3Bee. Create 7-day diet for Age {age}, Gender {gender}, Weight {weight}kg, Height {height}cm, BMI {bmi:.1f}, Activity {activity}, Goal {goal}, Diet {diet_pref}, Allergies {allergies}. Give calorie target, daily Breakfast, Snack, Lunch, Snack, Dinner with Indian foods for {diet_pref} with portions and calories, plus tips for {goal}, water, exercise. Use tables and emojis. Add disclaimer: AI advice only."
 
     with st.spinner("N3Bee AI is creating your plan..."):
         try:
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt_text
-            )
+            response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt_text)
             if response.text:
                 st.success("Your Personalized Diet Plan is Ready!")
                 st.markdown(response.text)
@@ -80,9 +62,9 @@ if submit:
         except Exception as e:
             msg = str(e).lower()
             if "api_key" in msg or "invalid" in msg:
-                st.error("Invalid or expired API Key. Create new from aistudio.google.com/app/apikey")
+                st.error("Invalid API Key. Create new from aistudio.google.com/app/apikey")
             elif "quota" in msg or "429" in msg:
-                st.error("API Limit Reached. Wait 1 minute or use another Gmail key.")
+                st.error("API Limit Reached. Wait 1 min or use another Gmail key.")
             else:
                 st.error(f"Error: {e}")
 
