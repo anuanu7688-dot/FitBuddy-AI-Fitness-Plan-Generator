@@ -51,7 +51,7 @@ if submit:
 
     with st.spinner("N3Bee AI is creating your plan..."):
         try:
-            response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt_text)
+            response = client.models.generate_content(model="gemini-3.8-flash", contents=prompt_text)
             if response.text:
                 st.success("Your Personalized Diet Plan is Ready!")
                 st.markdown(response.text)
@@ -69,4 +69,4 @@ if submit:
                 st.error(f"Error: {e}")
 
 st.divider()
-st.caption("Made with love by Team N3Bee - Anushree P , Ahammed Sha , Avinth Atchai C , Afsal A | Powered by Gemini 2.0 Flash")
+st.caption("Made with love by Team N3Bee - Anushree P , Ahammed Sha , Avinth Atchai C , Afsal A | Powered by Gemini 3.8 Flash")
