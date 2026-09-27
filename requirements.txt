@@ -1,2 +1,4 @@
-streamlit
-google-genai
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+requests>=2.32,<3
+pydantic>=2.10,<3
