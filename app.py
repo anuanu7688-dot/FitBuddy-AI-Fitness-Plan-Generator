@@ -55,7 +55,10 @@ def generate_fast(prompt, key):
 **Day 7 - Rest:** Full Rest, 3L Water, 8hr Sleep
 **🥗 Nutrition:** Protein each meal + fruit + 3L water
 **😴 Recovery:** Sleep 7-8hrs + stretch
-*AI busy, click again in 20 sec for fresh AI plan*"""
+
+---
+*AI models busy - Click Generate again in 20 sec for fresh AI plan*
+"""
 
 st.markdown("<h2 style='text-align:center'>💪 FitBuddy - AI Fitness Plan Generator</h2>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center'>Fastest Gemini Model - Auto Switches if Busy - 1 Key Only</p>", unsafe_allow_html=True)
