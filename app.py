@@ -1,159 +1,206 @@
 import streamlit as st
 import sqlite3
-from google import genai
 import time
+from google import genai
+import os
 
-st.set_page_config(page_title="FitBuddy - AI Fitness Plan Generator", page_icon="💪", layout="centered")
+# --- PAGE CONFIG - Standard ---
+st.set_page_config(
+    page_title="FitBuddy - AI Fitness Plan Generator",
+    page_icon="💪",
+    layout="wide"
+)
 
-st.markdown("<h2 style='text-align:center; color:#2D7D32;'>💪 FitBuddy - AI Fitness Plan Generator</h2>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Personalized workout plans & nutrition tips using Gemini AI</p>", unsafe_allow_html=True)
+# --- CUSTOM CSS - Classy Look ---
+st.markdown("""
+<style>
+.main-header {text-align:center; color:#1B5E20; font-weight:700;}
+.card {background-color:#F1F8E9; padding:15px; border-radius:10px; border-left:5px solid #2E7D32;}
+</style>
+""", unsafe_allow_html=True)
 
-# --- Database for Skill Wallet (SQLite) ---
-conn_init = sqlite3.connect("fitbuddy.db")
-conn_init.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, weight REAL, height REAL, goal TEXT, intensity TEXT, plan TEXT)")
-conn_init.commit()
-conn_init.close()
+st.markdown("<h1 class='main-header'>💪 FitBuddy - AI Fitness Plan Generator</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Your Personalized 7-Day AI Coach powered by Gemini</p>", unsafe_allow_html=True)
 
-# --- Gemini API Key ---
-if "GEMINI_API_KEY" in st.secrets:
-    api_key = st.secrets["GEMINI_API_KEY"]
-else:
-    st.sidebar.header("🔑 API Configuration")
-    api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
-    if not api_key:
-        st.warning("Please enter your Gemini API Key in sidebar to continue.")
-        st.stop()
+# --- DATABASE - Fixed to lower case everywhere ---
+DB_NAME = "fitbuddy.db"
 
-client = genai.Client(api_key=api_key.strip())
+def init_db():
+    conn = sqlite3.connect(DB_NAME)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            age INTEGER,
+            weight REAL,
+            height REAL,
+            gender TEXT,
+            goal TEXT,
+            intensity TEXT,
+            plan TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
 
-# --- FIX FOR 503 ERROR - Auto retry, never save error ---
-def generate_with_fallback(prompt_text):
-    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-lite-latest"]
-    for attempt in range(3):
-        for model_name in models_to_try:
-            try:
-                response = client.models.generate_content(model=model_name, contents=prompt_text)
-                if response.text and "503" not in response.text and "UNAVAILABLE" not in response.text:
-                    return response.text
-            except Exception as e:
-                time.sleep(1)
-                continue
-        time.sleep(2)
-    return None
+init_db()
 
-# --- Tabs as per requirement ---
-tab1, tab2, tab3 = st.tabs(["Scenario 1: Generate Plan", "Scenario 2: Feedback Update", "Scenario 3: Nutrition Tip"])
+# --- GEMINI SERVICE - Classy Standard - NO API KEY PROMPT ---
+class FitBuddyService:
+    def __init__(self):
+        # Get key only from secrets/env, never ask user
+        api_key = None
+        try:
+            api_key = st.secrets.get("GEMINI_API_KEY", None)
+        except:
+            api_key = None
+        
+        if not api_key:
+            api_key = os.environ.get("GEMINI_API_KEY", None)
 
-# ============== TAB 1 ==============
+        if not api_key:
+            st.error("⚠️ GEMINI_API_KEY not set in Streamlit Secrets. Please add it in Deploy Settings > Secrets.")
+            st.stop()
+        
+        self.client = genai.Client(api_key=api_key.strip())
+        self.models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest"]
+
+    def generate(self, prompt_text):
+        """Auto-retry for 503, never saves error"""
+        for _ in range(3):
+            for model in self.models:
+                try:
+                    response = self.client.models.generate_content(
+                        model=model,
+                        contents=prompt_text
+                    )
+                    if response.text and "503" not in response.text and "UNAVAILABLE" not in response.text.upper():
+                        return response.text
+                except Exception:
+                    time.sleep(1)
+                    continue
+            time.sleep(2)
+        return None
+
+service = FitBuddyService()
+
+# --- TABS AS PER REQUIREMENT ---
+tab1, tab2, tab3 = st.tabs([
+    "Scenario 1: Generate Plan", 
+    "Scenario 2: Update with Feedback", 
+    "Scenario 3: Nutrition / Recovery Tip"
+])
+
+# ============ TAB 1: GENERATE PLAN ============
 with tab1:
-    st.subheader("Generate Your Personalized Plan")
+    st.subheader("Scenario 1: Generate Personalized Plan")
     with st.form("fitbuddy_form"):
-        name = st.text_input("Name", placeholder="Your Name")
-        col1, col2 = st.columns(2)
-        with col1:
+        name = st.text_input("Name *", placeholder="As per Scenario 1")
+        c1, c2 = st.columns(2)
+        with c1:
             age = st.number_input("Age", 10, 100, 23)
             weight = st.number_input("Weight (kg)", 30.0, 200.0, 60.0)
-        with col2:
+            intensity = st.selectbox("Preferred Workout Intensity *", ["Low", "Medium", "High"])
+        with c2:
             height = st.number_input("Height (cm)", 100.0, 250.0, 165.0)
             gender = st.selectbox("Gender", ["Female", "Male", "Other"])
+            activity = st.selectbox("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
+        
+        goal = st.selectbox("Fitness Goal *", ["Weight Loss", "Muscle Gain", "General Fitness"])
+        diet = st.radio("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan"], horizontal=True)
+        allergies = st.text_input("Allergies / Food to Avoid (Optional)")
+        
+        submit = st.form_submit_button("🚀 Generate My 7-Day Plan", use_container_width=True)
 
-        intensity = st.selectbox("Workout Intensity (High/Medium/Low)", ["High", "Medium", "Low"])
-        activity = st.selectbox("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
-        goal = st.selectbox("Goal", ["Weight Loss", "Muscle Gain", "General Wellness"])
-        diet = st.radio("Diet Preference", ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian", "Jain"],)
-        allergies = st.text_input("Any Allergies / Avoid? (Optional)", placeholder="Ex: Peanuts, Milk")
-        submitted = st.form_submit_button("Generate 7-Day Plan")
-
-    if submitted:
+    if submit:
         if not name.strip():
-            st.error("Please enter Name as per Scenario 1")
+            st.error("Please enter Name as per Scenario 1 requirement")
         else:
-            try:
-                bmi_val = weight / ((height / 100) ** 2)
-                prompt = f"""Create personalized 7-day workout plan for {name}, Age {age}, {gender}, {weight}kg, {height}cm, BMI {bmi_val:.1f}, Goal {goal}, Intensity {intensity}, Activity {activity}, Diet {diet}, Allergies {allergies}.
-                Include: day-wise 7-day schedule: exercise name, sets, reps, duration.
-                Also include exactly 1 nutrition tip and 1 recovery tip for goal {goal}.
-                Keep it structured and goal-specific. Mention diet {diet} clearly."""
+            bmi = weight / ((height/100)**2)
+            # FINAL PROMPT - Uses ALL inputs to satisfy 100%
+            prompt = f"""
+            You are FitBuddy AI Coach. Create a personalized 7-day workout plan for:
+            Name: {name}, Age: {age}, Weight: {weight}kg, Height: {height}cm, Gender: {gender}, BMI: {bmi:.1f},
+            Fitness Goal: {goal}, Preferred Intensity: {intensity}, Activity Level: {activity}, Diet: {diet}, Allergies: {allergies}
 
-                with st.spinner("FitBuddy AI is creating your plan..."):
-                    plan_text = generate_with_fallback(prompt)
+            Requirements:
+            1. Day-by-day 7-day schedule tailored to goal {goal} and intensity {intensity}
+            2. For each day: Exercise Name, Sets, Reps, Rest Time
+            3. Include exactly 1 Nutrition Tip relevant to {goal} and diet {diet}
+            4. Include exactly 1 Recovery Tip
+            5. Keep structured, clean and motivational.
+            """
+            
+            with st.spinner("FitBuddy AI is building your plan..."):
+                plan_text = service.generate(prompt)
+            
+            if not plan_text:
+                st.error("AI is busy (503). Please wait 15 seconds and click Generate again. Error not saved.")
+            else:
+                # Save to both Session and SQLite (lower case)
+                st.session_state[f"plan_{name.strip().lower()}"] = plan_text
+                st.session_state[f"goal_{name.strip().lower()}"] = goal
 
-                if not plan_text:
-                    st.error("Gemini is busy (503 High Demand). Please wait 20 seconds and click Generate again - it will work!")
-                    st.stop()
-
-                # Save to SQLite - Required
-                conn = sqlite3.connect("fitbuddy.db")
-                conn.execute("INSERT INTO users (name, age, weight, height, goal, intensity, plan) VALUES (?,?,?,?,?,?,?)",
-                             (name.strip(), age, weight, height, goal, intensity, plan_text))
+                conn = sqlite3.connect(DB_NAME)
+                conn.execute("INSERT OR REPLACE INTO users (name, age, weight, height, gender, goal, intensity, plan) VALUES (?,?,?,?,?,?,?,?)",
+                             (name.strip().lower(), age, weight, height, gender, goal, intensity, plan_text))
                 conn.commit()
                 conn.close()
 
-                # Save to Session also - FIX for SQLite reset on Streamlit Cloud
-                st.session_state[f"plan_{name.lower().strip()}"] = plan_text
-                st.session_state[f"goal_{name.lower().strip()}"] = goal
+                st.success(f"Plan Ready for {name}!")
+                st.markdown(f"<div class='card'>{plan_text}</div>", unsafe_allow_html=True)
+                st.download_button("📥 Download Plan", data=plan_text, file_name=f"{name}_FitBuddy_Plan.txt")
 
-                st.success(f"Your Plan is Ready, {name}! 💪")
-                st.markdown(plan_text)
-                st.download_button("Download Plan", data=plan_text, file_name=f"FitBuddy_Plan_{name}.txt")
-
-            except Exception as e:
-                st.error(f"Error: {e}. Click Generate again!")
-
-# ============== TAB 2 ==============
+# ============ TAB 2: FEEDBACK ============
 with tab2:
-    st.subheader("Update Plan with Feedback")
-    st.caption("Have a plan? Give feedback like 'more cardio' or 'include rest days'")
+    st.subheader("Scenario 2: Update Plan with Feedback")
+    st.caption("Example feedback: 'more focus on cardio' or 'include more rest days'")
     fb_name = st.text_input("Enter Your Name", key="fb_name")
-    feedback = st.text_area("Your Feedback", placeholder="Ex: include more cardio, less strength")
+    feedback = st.text_area("Your Feedback *", placeholder="e.g. more cardio, less leg day")
 
-    if st.button("Update My Plan with AI"):
+    if st.button("🔄 Update Plan with AI", use_container_width=True):
         if not fb_name.strip() or not feedback.strip():
             st.error("Please enter both Name and Feedback")
         else:
-            fb_name_clean = fb_name.strip()
-            # Check Session First + SQLite Second
-            prev_plan = st.session_state.get(f"plan_{fb_name_clean.lower()}")
-            prev_goal = st.session_state.get(f"goal_{fb_name_clean.lower()}")
+            clean_name = fb_name.strip().lower()
+            prev_plan = st.session_state.get(f"plan_{clean_name}")
+            prev_goal = st.session_state.get(f"goal_{clean_name}")
 
             if not prev_plan:
-                try:
-                    conn = sqlite3.connect("fitbuddy.db")
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT plan, goal FROM users WHERE LOWER(name)=LOWER(?) ORDER BY id DESC LIMIT 1", (fb_name_clean,))
-                    row = cursor.fetchone()
-                    conn.close()
-                    if row:
-                        prev_plan, prev_goal = row
-                except Exception as e:
-                    st.error(f"DB Error: {e}")
+                conn = sqlite3.connect(DB_NAME)
+                cur = conn.cursor()
+                cur.execute("SELECT plan, goal FROM users WHERE name=?", (clean_name,))
+                row = cur.fetchone()
+                conn.close()
+                if row:
+                    prev_plan, prev_goal = row
 
             if not prev_plan:
-                st.error("No previous plan found for this name. Generate in Tab 1 first.")
+                st.warning("No previous plan found. Please generate plan in Tab 1 first.")
             else:
-                prompt2 = f"Previous plan: {prev_plan}. User feedback: {feedback}. Goal: {prev_goal}. Regenerate updated 7-day plan based on feedback. Keep structured."
-                with st.spinner("Updating plan based on feedback..."):
-                    updated_plan = generate_with_fallback(prompt2)
-                if not updated_plan:
-                    st.error("Gemini busy, wait 20 sec and click again!")
-                    st.stop()
-                st.success("Updated Plan Ready!")
-                st.markdown(updated_plan)
-                st.download_button("Download Updated Plan", data=updated_plan, file_name=f"Updated_Plan_{fb_name_clean}.txt")
+                prompt2 = f"Previous Plan: {prev_plan}\nGoal: {prev_goal}\nUser Feedback: {feedback}\nRegenerate updated 7-day plan based on feedback, keep same structure."
+                with st.spinner("Regenerating based on your feedback..."):
+                    updated = service.generate(prompt2)
+                if not updated:
+                    st.error("AI busy, try again after 15 sec")
+                else:
+                    st.success("Updated Plan!")
+                    st.markdown(updated)
+                    st.download_button("📥 Download Updated Plan", data=updated, file_name=f"{fb_name}_updated.txt", key="dl2")
 
-# ============== TAB 3 ==============
+# ============ TAB 3: TIP ============
 with tab3:
-    st.subheader("Get Nutrition / Recovery Tip")
-    tip_goal = st.selectbox("Select Goal", ["Weight Loss", "Muscle Gain", "General Wellness"], key="tip_goal")
-    if st.button("Get Tip"):
-        prompt3 = f"Give a concise and relevant nutrition or recovery tip for fitness goal {tip_goal}. Example: include protein in your post-workout meal for muscle gain. 60 words."
+    st.subheader("Scenario 3: Nutrition / Recovery Tip")
+    tip_goal = st.selectbox("Select Fitness Goal", ["Weight Loss", "Muscle Gain", "General Fitness"], key="tip_goal")
+    if st.button("💡 Get Tip", use_container_width=True):
+        prompt3 = f"Give a concise and relevant 2-line nutrition or recovery tip for fitness goal: {tip_goal}. Example: 'include protein in your post-workout meal' for muscle gain."
         with st.spinner("Getting tip..."):
-            tip_text = generate_with_fallback(prompt3)
-        if not tip_text:
-            st.error("Gemini busy, click again after 10 sec!")
+            tip = service.generate(prompt3)
+        if tip:
+            st.success(tip)
         else:
-            st.success(tip_text)
+            st.error("AI busy, click again")
 
-# --- Footer as per requirement ---
+# --- FOOTER AS PER REQUIREMENT ---
 st.markdown("---")
-st.caption("Made with love by Team N3Bee - Anushree P, Ahammed Sha, Avinth Atchai C, Afsal A | Powered by Gemini | FastAPI + SQLite + Gemini + HTML")
+st.caption("Made with ❤️ by Team N3Bee - Anushree P, Ahammed Sha, Avinth Atchai C, Afsal A | FastAPI + Gemini + Streamlit")
