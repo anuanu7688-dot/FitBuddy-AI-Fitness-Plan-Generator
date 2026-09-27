@@ -65,7 +65,7 @@ tab1, tab2, tab3 = st.tabs(["📋 Scenario 1: Generate Plan", "🔄 Scenario 2: 
 with tab1:
     st.subheader("Scenario 1: Generate Personalized Plan")
     with st.form("gen_form"):
-        name = st.text_input("Name *", placeholder="e.g. Anushree")
+        name = st.text_input("Name *", placeholder="e.g. Your name")
         col1, col2 = st.columns(2)
         with col1:
             age = st.number_input("Age", 10, 100, 23)
