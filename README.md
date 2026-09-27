@@ -1,39 +1,26 @@
-FitBuddy – AI Fitness Plan Generator
-A college team project built with FastAPI, Gemini AI, SQLite, HTML and CSS.
-Features
-Scenario 1: user enters name, age, weight, goal and intensity -> personalized 7-day plan.
-Scenario 2: user submits feedback -> plan is regenerated/refined.
-Scenario 3: goal-specific nutrition/recovery tip.
-SQLite stores users and generated plans.
-/docs exposes the FastAPI API documentation.
-/health provides a deployment health check.
-If GEMINI_API_KEY is unavailable or Gemini is temporarily unavailable, a built-in safe fallback keeps the application usable.
-Team
-Anushree P
-Avinth Atchai C
-Ahammed Sha
-Afsal A
-Run locally
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
+# 💪 FitBuddy - AI Fitness Plan Generator
 
-pip install -r requirements.txt
-uvicorn main:app --reload
-Open http://127.0.0.1:8000.
-Gemini setup
-Create a Gemini API key in Google AI Studio and set it as an environment variable:
-Windows PowerShell:
-$env:GEMINI_API_KEY="YOUR_KEY"
-macOS/Linux:
-export GEMINI_API_KEY="YOUR_KEY"
-Optional model override:
-export GEMINI_MODEL="gemini-2.5-flash"
-Never commit the API key to GitHub.
-Deploy
-For a service that supports a Procfile, use:
-uvicorn main:app --host 0.0.0.0 --port $PORT
-Set GEMINI_API_KEY in the deployment platform's Environment Variables/Secrets.
-SQLite is suitable for a college demo. Some cloud platforms use ephemeral disks; if permanent production data is required, replace SQLite with a managed database or attach persistent storage.
+AI-powered personalized fitness coach built with Gemini + Streamlit + FastAPI logic.
+
+**Team N3Bee:** Anushree P, Ahammed Sha, Avinth Atchai C, Afsal A
+
+### Features - Satisfies 3 Scenarios
+**Scenario 1: Generate Plan:** User enters Name, Age, Weight, Height, Gender, Goal, Intensity, Activity Level, Diet. AI generates 7-day workout plan with sets, reps, rest + nutrition tip + recovery tip.
+
+**Scenario 2: Update with Feedback:** User enters Name + Feedback (e.g., "more cardio"). AI regenerates plan based on previous plan + feedback.
+
+**Scenario 3: Nutrition / Recovery Tip:** User selects Goal and gets instant 2-line tip from AI.
+
+### How to Use
+1. Get your free Gemini API Key from https://aistudio.google.com/app/apikey
+2. Open the app
+3. Enter your API Key in sidebar (Your key stays in your browser only, not saved)
+4. Generate your plan
+
+### Tech Stack
+- Frontend: Streamlit
+- AI: Google Gemini 1.5 Flash
+- Backend Logic: Python (FastAPI pattern)
+- DB: SQLite + Session State
+
+### Run Locally
