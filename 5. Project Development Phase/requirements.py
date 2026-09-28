@@ -1,0 +1,5 @@
+fastapi
+uvicorn[standard]
+jinja2
+google-genai
+python-multipart
