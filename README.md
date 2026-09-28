@@ -1,6 +1,8 @@
 # FitBuddy - AI Fitness Plan Generator - Team N3Bee
 AI-powered personalized fitness coach built with Gemini + Streamlit + FastAPI pattern.
 
+🚀 Live Demo: https://n3bee-fitbuddy.streamlit.app
+
 Team N3Bee:
 - Anushree P - Topic Links, Setup Environment, Main Application Logic in app.py, Conclusion
 - Avinth Atchai C - Workflow, Develop Core Functionalities, Designing and Developing UI
