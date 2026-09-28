@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>FitBuddy Result</title>
+
+    <link rel="stylesheet"
+          href="/static/style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>FitBuddy</h1>
+
+    <h2>Your Personalized Fitness Plan</h2>
+
+    <div class="plan">
+
+        <pre>{{ plan }}</pre>
+
+    </div>
+
+
+    {% if tip %}
+
+    <div class="tip">
+
+        <h2>Nutrition / Recovery Tip</h2>
+
+        <p>{{ tip }}</p>
+
+    </div>
+
+    {% endif %}
+
+
+    <h2>Give Feedback</h2>
+
+    <p>
+        Tell FitBuddy how you want to change the plan.
+    </p>
+
+
+    <form action="/feedback" method="post">
+
+        <input
+            type="hidden"
+            name="user_id"
+            value="{{ user_id }}"
+        >
+
+        <textarea
+            name="old_plan"
+            style="display:none;"
+        >{{ plan }}</textarea>
+
+
+        <label>Your Feedback</label>
+
+        <textarea
+            name="feedback_text"
+            rows="5"
+            required
+            placeholder="Example: Add more cardio and include more rest days."
+        ></textarea>
+
+
+        <button type="submit">
+            Update My Plan
+        </button>
+
+    </form>
+
+
+    <br>
+
+    <a href="/">
+        Create Another Plan
+    </a>
+
+</div>
+
+</body>
+
+</html>
