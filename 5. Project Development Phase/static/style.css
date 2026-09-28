@@ -1,0 +1,145 @@
+body {
+
+    font-family: Arial, sans-serif;
+
+    background: #f2f7f5;
+
+    margin: 0;
+
+    padding: 0;
+}
+
+
+.container {
+
+    width: 90%;
+
+    max-width: 800px;
+
+    margin: 40px auto;
+
+    background: white;
+
+    padding: 30px;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+
+h1 {
+
+    text-align: center;
+
+    font-size: 40px;
+
+    margin-bottom: 5px;
+}
+
+
+h2 {
+
+    margin-top: 25px;
+}
+
+
+p {
+
+    line-height: 1.6;
+}
+
+
+label {
+
+    display: block;
+
+    margin-top: 15px;
+
+    margin-bottom: 5px;
+
+    font-weight: bold;
+}
+
+
+input,
+select,
+textarea {
+
+    width: 100%;
+
+    padding: 12px;
+
+    box-sizing: border-box;
+
+    border: 1px solid #ccc;
+
+    border-radius: 6px;
+
+    margin-bottom: 10px;
+}
+
+
+button {
+
+    width: 100%;
+
+    padding: 14px;
+
+    margin-top: 15px;
+
+    border: none;
+
+    border-radius: 6px;
+
+    cursor: pointer;
+
+    font-size: 16px;
+
+    font-weight: bold;
+}
+
+
+.plan {
+
+    background: #f5f5f5;
+
+    padding: 20px;
+
+    border-radius: 8px;
+
+    overflow-x: auto;
+}
+
+
+pre {
+
+    white-space: pre-wrap;
+
+    word-wrap: break-word;
+
+    font-family: Arial, sans-serif;
+
+    line-height: 1.6;
+}
+
+
+.tip {
+
+    margin-top: 25px;
+
+    padding: 20px;
+
+    background: #f5f5f5;
+
+    border-radius: 8px;
+}
+
+
+a {
+
+    text-decoration: none;
+
+    font-weight: bold;
+}
