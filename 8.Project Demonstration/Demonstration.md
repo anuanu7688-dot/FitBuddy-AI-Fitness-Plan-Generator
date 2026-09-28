@@ -1,8 +1,7 @@
 # 8.Project Demonstration
 Team N3Bee
-
-Demo Link (After Deploy): Will be added after Streamlit Cloud Deploy
-Video: Screen recording will show 3 Scenarios
+GitHub Repo: https://github.com/anuanu7688-dot/FitBuddy-AI-Fitness-Plan-Generator
+Video Demo Drive Link: https://drive.google.com/file/d/1oEMIr4ckG05LKbpC_ejTe45ze1kpsNB7/view?usp=sharing
 
 Scenario 1 Demo Steps:
 1. Open app, enter API key in sidebar
@@ -22,5 +21,3 @@ Scenario 3 Demo Steps:
 
 Conclusion - By Anushree P:
 FitBuddy solves generic plan problem with fully personalized AI plan using fastest 5 Gemini models parallel logic + dynamic fallback ensuring unique plan for every user every time.
-
-Team Work Distribution Proof as per Skill Wallet Screenshot.
