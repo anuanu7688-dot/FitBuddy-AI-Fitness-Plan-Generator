@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>FitBuddy - AI Fitness Plan Generator</title>
+
+    <link rel="stylesheet"
+          href="/static/style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>FitBuddy</h1>
+
+    <h2>AI Fitness Plan Generator</h2>
+
+    <p>
+        Generate a personalized 7-day fitness plan
+        using Gemini AI.
+    </p>
+
+    <form action="/generate" method="post">
+
+        <label>Name</label>
+
+        <input
+            type="text"
+            name="name"
+            required
+            placeholder="Enter your name"
+        >
+
+
+        <label>Age</label>
+
+        <input
+            type="number"
+            name="age"
+            min="13"
+            max="100"
+            required
+        >
+
+
+        <label>Weight (kg)</label>
+
+        <input
+            type="number"
+            name="weight"
+            step="0.1"
+            min="1"
+            required
+        >
+
+
+        <label>Fitness Goal</label>
+
+        <select name="goal" required>
+
+            <option value="">
+                Select your goal
+            </option>
+
+            <option value="Weight Loss">
+                Weight Loss
+            </option>
+
+            <option value="Muscle Gain">
+                Muscle Gain
+            </option>
+
+            <option value="General Wellness">
+                General Wellness
+            </option>
+
+            <option value="General Fitness">
+                General Fitness
+            </option>
+
+        </select>
+
+
+        <label>Workout Intensity</label>
+
+        <select name="intensity" required>
+
+            <option value="">
+                Select intensity
+            </option>
+
+            <option value="Low">
+                Low
+            </option>
+
+            <option value="Medium">
+                Medium
+            </option>
+
+            <option value="High">
+                High
+            </option>
+
+        </select>
+
+
+        <button type="submit">
+            Generate Fitness Plan
+        </button>
+
+    </form>
+
+</div>
+
+</body>
+
+</html>
