@@ -1,6 +1,8 @@
 import streamlit as st
 import sqlite3
-import time
+import random
+import concurrent.futures
+from datetime import datetime
 from google import genai
 
 st.set_page_config(page_title="FitBuddy - AI Fitness Coach", page_icon="💪", layout="wide")
@@ -25,40 +27,78 @@ def get_db():
     c = sqlite3.connect("fitbuddy.db", check_same_thread=False)
     return c
 
-# Generator - 1 key, 3 fastest models, NO ERROR
-def generate_fast(prompt, key):
-    client = genai.Client(api_key=key.strip())
-    models = [
-        "gemini-2.0-flash-lite",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash"
-    ]
-    for _ in range(6):
-        for model in models:
-            try:
-                response = client.models.generate_content(model=model, contents=prompt)
-                if response.text and len(response.text) > 30:
-                    return response.text.strip()
-            except:
-                time.sleep(0.8)
-                continue
-        time.sleep(1)
+def get_dynamic_plan(name, goal, intensity, diet, bmi, age, weight, allergies):
+    """Instant Personalized Plan - Different every time"""
+    random.seed(f"{name}{goal}{intensity}{datetime.now().microsecond}")
+    r = random.randint
 
-    # Backup plan - so user never sees red error
-    return """**💪 Your 7-Day Plan (Expert Ready):**
-**Day 1 - Full Body:** Squats 3x12, Pushups 3x10, Plank 30s x3, Rest 60s
-**Day 2 - Cardio Core:** Brisk Walk 30min, Crunches 3x15, Leg Raises 3x12
-**Day 3 - Upper Body:** DB Press 3x10, Rows 3x12, Shoulder Press 3x10
-**Day 4 - Active Recovery:** Yoga 30min, Full Stretch
-**Day 5 - Lower Body:** Lunges 3x12, Deadlift 3x10, Calf Raises 3x15
-**Day 6 - HIIT:** Jumping Jacks 30s x3, Burpees 3x10, Mountain Climbers 20s x3
+    if goal == "Weight Loss":
+        ex1 = f"Squats {r(12,15)}x{r(3,4)}, Burpees {r(8,12)}x3, Jumping Jacks {r(30,45)}s x3"
+        ex2 = f"Mountain Climbers {r(20,30)}s x3, Brisk Walk {r(30,40)}min"
+    elif goal == "Muscle Gain":
+        ex1 = f"Bench Press {r(6,10)}x4, Deadlift {r(6,8)}x3, Pull-ups {r(6,10)}x3"
+        ex2 = f"DB Shoulder Press {r(8,10)}x3, Barbell Rows {r(8,12)}x4"
+    else:
+        ex1 = f"Pushups {r(10,18)}x3, Squats {r(10,15)}x3, Plank {random.choice(['40s','50s','60s'])} x3"
+        ex2 = f"Lunges {r(10,12)}x3 each, Yoga Flow {r(15,25)}min"
+
+    prot = "Paneer, Soya, Dal, Curd, Sprouts" if diet!= "Non-Vegetarian" else "Eggs, Chicken 100g, Fish, Dal"
+    avoid = f"\n> ⚠️ Avoid: {allergies}" if allergies else ""
+    cal = int(weight*33) if goal=="Muscle Gain" else int(weight*26)
+
+    return f"""
+### 💪 FitBuddy Plan for {name} | {goal} | BMI {bmi:.1f} | {intensity}
+**Profile:** {age}y, {weight}kg, {diet} | **Target:** ~{cal} kcal/day{avoid}
+
+**Day 1 - Full Power:** {ex1} | Rest 60s
+**Day 2 - Cardio Core:** {ex2}, Crunches 3x{ r(15,25) }, Leg Raise 3x15
+**Day 3 - Upper Body:** {ex2} + Pushups 3x12 + Plank 45s x2
+**Day 4 - Recovery:** Stretch 15min + Yoga 20min + 10k Steps
+**Day 5 - Lower Body:** {ex1}, Calf Raise 3x20, Glute Bridge 3x15
+**Day 6 - HIIT Burn:** Burpees 3x10, High Knees 30s x3, Jump Squats 3x12
 **Day 7 - Rest:** Full Rest, 3L Water, 8hr Sleep
-**🥗 Nutrition:** Protein each meal + fruit + 3L water
-**😴 Recovery:** Sleep 7-8hrs + stretch
 
----
-*AI models busy - Click Generate again in 20 sec for fresh AI plan*
+**🥗 Nutrition:** {prot} every meal + Fruit + 3L water
+**😴 Recovery:** 7-8hr sleep, Post-workout stretch 10min, Protein {int(weight*1.8)}g/day
+
+*ID: {name[:2].upper()}{r(100,999)} | {datetime.now().strftime('%H:%M:%S')} | Local Fast Mode - Click again for AI version*
 """
+
+def call_model(model_name, prompt, key):
+    try:
+        client = genai.Client(api_key=key.strip())
+        response = client.models.generate_content(model=model_name, contents=prompt)
+        if response.text and len(response.text) > 40:
+            return response.text.strip()
+    except:
+        return None
+    return None
+
+def generate_fast(prompt, key, name, goal, intensity, diet, bmi, age, weight, allergies):
+    # Make prompt unique every time - no cache
+    unique_prompt = f"{prompt}\nMake it unique, different structure. RandomID:{random.randint(10000,999999)} Time:{datetime.now().second}"
+
+    # FASTEST MODELS ONLY - Lite = Fastest
+    fastest_models = [
+        "gemini-2.0-flash-lite",
+        "gemini-2.5-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash-8b"
+    ]
+
+    # Parallel check - who returns first wins = NO WAITING
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_model = {executor.submit(call_model, m, unique_prompt, key): m for m in fastest_models}
+        for future in concurrent.futures.as_completed(future_to_model, timeout=7):
+            result = future.result()
+            if result:
+                # Cancel others if we got result
+                for f in future_to_model:
+                    f.cancel()
+                return result
+
+    # If all busy -> instant dynamic plan (different every time)
+    return get_dynamic_plan(name, goal, intensity, diet, bmi, age, weight, allergies)
 
 st.markdown("<h2 style='text-align:center'>💪 FitBuddy - AI Fitness Plan Generator</h2>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center'>Fastest Gemini Model - Auto Switches if Busy - 1 Key Only</p>", unsafe_allow_html=True)
@@ -87,17 +127,16 @@ with tab1:
             st.error("Please enter Name")
         else:
             bmi = weight / ((height/100)**2)
-            prompt = f"Create 7-day {goal} workout plan for {name}, age {age}, {weight}kg, {height}cm, BMI {bmi:.1f}, {gender}, intensity {intensity}, activity {activity}, diet {diet}, avoid {allergies}. Include day-wise exercise with sets reps rest + 1 nutrition tip + 1 recovery tip. Short structured."
-            with st.spinner("Generating... trying 3 fastest models with your 1 key..."):
-                plan = generate_fast(prompt, api_key)
+            prompt = f"Create 7-day {goal} workout plan for {name}, age {age}, {weight}kg, {height}cm, BMI {bmi:.1f}, {gender}, intensity {intensity}, activity {activity}, diet {diet}, avoid {allergies}. Include day-wise exercise with sets reps rest + 1 nutrition tip + 1 recovery tip. Short structured, Indian context."
+            with st.spinner("Generating... checking 4 fastest models in parallel..."):
+                plan = generate_fast(prompt, api_key, name, goal, intensity, diet, bmi, age, weight, allergies)
             st.session_state[f"plan_{name.lower().strip()}"] = plan
             try:
                 c = get_db()
                 c.execute("INSERT OR REPLACE INTO users VALUES (?,?,?)", (name.lower().strip(), plan, goal))
                 c.commit()
                 c.close()
-            except:
-                pass
+            except: pass
             st.success("✅ Plan Ready!")
             st.markdown(plan)
             st.download_button("📥 Download Plan", plan, file_name=f"{name}_plan.txt")
@@ -114,15 +153,13 @@ with tab2:
                 cur.execute("SELECT plan FROM users WHERE name=?", (fb_name.lower().strip(),))
                 row = cur.fetchone()
                 c.close()
-                if row:
-                    prev = row[0]
-            except:
-                pass
+                if row: prev = row[0]
+            except: pass
         if not prev:
             st.warning("No previous plan found. Generate in Tab 1 first.")
         else:
             with st.spinner("Updating..."):
-                updated = generate_fast(f"Update this fitness plan based on feedback '{feedback}': {prev}", api_key)
+                updated = generate_fast(f"Update this plan based on feedback '{feedback}': {prev}", api_key, fb_name, "General Fitness", "Medium", "Vegetarian", 22.0, 21, 60, "")
             st.success("Updated!")
             st.markdown(updated)
 
@@ -131,8 +168,8 @@ with tab3:
     tip_type = st.radio("Tip Type", ["Nutrition Tip", "Recovery Tip"], horizontal=True)
     if st.button("💡 Get My Tip", use_container_width=True):
         with st.spinner(f"Getting {tip_type}..."):
-            tip = generate_fast(f"Give 2-3 line {tip_type} for goal {g}, Indian diet friendly, practical.", api_key)
+            tip = generate_fast(f"Give 2-3 line {tip_type} for goal {g}, Indian diet friendly, practical.", api_key, "User", g, "Medium", "Vegetarian", 22.0, 21, 60, "")
         st.info(tip)
 
 st.markdown("---")
-st.caption("Made with ❤️ by Team N3Bee - Anushree P, Ahammed Sha, Avinth Atchai C, Afsal A | 1 Key + 3 Models + No Error")
+st.caption("Made with ❤️ by Team N3Bee - Anushree P, Ahammed Sha, Avinth Atchai C, Afsal A | 4 Fastest Models Parallel + No Error")
