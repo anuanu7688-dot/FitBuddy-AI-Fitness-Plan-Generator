@@ -2,6 +2,7 @@
 Team N3Bee
 GitHub Repo: https://github.com/anuanu7688-dot/FitBuddy-AI-Fitness-Plan-Generator
 Video Demo Drive Link: https://drive.google.com/file/d/1oEMIr4ckG05LKbpC_ejTe45ze1kpsNB7/view?usp=sharing
+Live Demo: https://n3bee-fitbuddy.streamlit.app
 
 Scenario 1 Demo Steps:
 1. Open app, enter API key in sidebar
