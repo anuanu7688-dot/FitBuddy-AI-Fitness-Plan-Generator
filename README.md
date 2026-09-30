@@ -56,7 +56,7 @@ The application provides a suitable nutrition or recovery tip based on the user'
 
 - Python
 - FastAPI
-- Google Gemini AI
+- Gemini AI with automatic multi-model fallback
 - SQLite
 - Jinja2
 - HTML
