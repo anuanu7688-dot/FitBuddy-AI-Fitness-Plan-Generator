@@ -1,29 +1,21 @@
 import os
-from dotenv import load_dotenv
 from google import genai
-
-load_dotenv()
 
 MODEL_NAME = os.getenv(
     "GEMINI_MODEL",
     "gemini-2.5-flash"
 )
 
-
 def get_client():
     api_key = os.getenv("GEMINI_API_KEY")
-
     if not api_key:
         raise RuntimeError(
             "GEMINI_API_KEY is not configured."
         )
-
     return genai.Client(api_key=api_key)
-
 
 def generate_fitness_plan(name, age, weight, goal, intensity):
     client = get_client()
-
     prompt = f"""
 You are FitBuddy, an AI fitness planning assistant.
 
@@ -51,18 +43,14 @@ professional medical advice when appropriate.
 
 Return only the fitness plan.
 """
-
     response = client.models.generate_content(
         model=MODEL_NAME,
         contents=prompt
     )
-
     return response.text
-
 
 def update_fitness_plan(old_plan, feedback):
     client = get_client()
-
     prompt = f"""
 You are FitBuddy, an AI fitness planning assistant.
 
@@ -84,29 +72,22 @@ Requirements:
 7. Keep recommendations practical and safe.
 8. Return only the updated fitness plan.
 """
-
     response = client.models.generate_content(
         model=MODEL_NAME,
         contents=prompt
     )
-
     return response.text
-
 
 def generate_goal_tip(goal):
     client = get_client()
-
     prompt = f"""
 Provide one short and practical nutrition or recovery tip
 for a person whose fitness goal is:
 {goal}
-
 Keep the advice general, safe and easy to understand.
 """
-
     response = client.models.generate_content(
         model=MODEL_NAME,
         contents=prompt
     )
-
     return response.text
