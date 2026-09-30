@@ -1,12 +1,18 @@
 import os
+import time
 from google import genai
 
 
-# Current Gemini model
-MODEL_NAME = os.getenv(
-    "GEMINI_MODEL",
-    "gemini-3.8-flash"
-)
+# Gemini models are tried in this order.
+# If one model is unavailable or busy, FitBuddy
+# automatically tries the next model.
+GEMINI_MODELS = [
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite"
+]
 
 
 def get_client():
@@ -25,6 +31,57 @@ def get_client():
     return genai.Client(api_key=api_key)
 
 
+def generate_content_with_fallback(prompt):
+    """
+    Try multiple Gemini models automatically.
+
+    If the first model is busy, unavailable, or temporarily
+    fails, the next model is tried automatically.
+    """
+
+    client = get_client()
+
+    errors = []
+
+    for model_name in GEMINI_MODELS:
+
+        try:
+            print(f"Trying Gemini model: {model_name}")
+
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
+
+            if response.text:
+                print(f"Success with model: {model_name}")
+                return response.text
+
+        except Exception as error:
+
+            error_message = str(error)
+
+            print(
+                f"Model {model_name} failed: "
+                f"{error_message}"
+            )
+
+            errors.append(
+                f"{model_name}: {error_message}"
+            )
+
+            # Wait briefly before trying the next model
+            time.sleep(1)
+
+            continue
+
+    # If every model failed
+    raise RuntimeError(
+        "All Gemini models are currently unavailable.\n\n"
+        + "\n".join(errors)
+    )
+
+
 def generate_fitness_plan(
     name,
     age,
@@ -36,14 +93,13 @@ def generate_fitness_plan(
     Generate a personalized 7-day fitness plan.
     """
 
-    client = get_client()
-
     prompt = f"""
 You are FitBuddy, an AI fitness planning assistant.
 
 Create a personalized 7-day fitness plan for the user.
 
 User Details:
+
 Name: {name}
 Age: {age}
 Weight: {weight} kg
@@ -54,7 +110,7 @@ Requirements:
 
 1. Create a complete plan from Day 1 to Day 7.
 2. Include suitable exercises for each day.
-3. Mention the approximate workout duration.
+3. Mention approximate workout duration.
 4. Include rest or recovery days when appropriate.
 5. Give a simple nutrition tip.
 6. Give a simple recovery tip.
@@ -62,18 +118,13 @@ Requirements:
 8. Do not provide dangerous, extreme, or unrealistic advice.
 9. Keep the answer clearly structured.
 10. Consider the user's fitness goal and workout intensity.
-11. Mention that this is general fitness guidance and is not a
-    substitute for professional medical advice when appropriate.
+11. Mention that this is general fitness guidance and is not
+    a substitute for professional medical advice when appropriate.
 
 Return only the fitness plan.
 """
 
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt
-    )
-
-    return response.text
+    return generate_content_with_fallback(prompt)
 
 
 def update_fitness_plan(old_plan, feedback):
@@ -81,16 +132,14 @@ def update_fitness_plan(old_plan, feedback):
     Update an existing fitness plan based on user feedback.
     """
 
-    client = get_client()
-
     prompt = f"""
 You are FitBuddy, an AI fitness planning assistant.
 
-Here is the user's existing fitness plan:
+Existing fitness plan:
 
 {old_plan}
 
-Here is the user's feedback:
+User feedback:
 
 {feedback}
 
@@ -112,12 +161,7 @@ Requirements:
 Return only the updated fitness plan.
 """
 
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt
-    )
-
-    return response.text
+    return generate_content_with_fallback(prompt)
 
 
 def generate_goal_tip(goal):
@@ -125,8 +169,6 @@ def generate_goal_tip(goal):
     Generate a short nutrition or recovery tip
     based on the user's fitness goal.
     """
-
-    client = get_client()
 
     prompt = f"""
 You are FitBuddy, an AI fitness planning assistant.
@@ -147,9 +189,4 @@ Requirements:
 5. Return only the tip.
 """
 
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt
-    )
-
-    return response.text
+    return generate_content_with_fallback(prompt)
