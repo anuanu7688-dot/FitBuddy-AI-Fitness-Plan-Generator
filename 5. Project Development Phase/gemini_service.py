@@ -1,7 +1,8 @@
 import os
-
+from dotenv import load_dotenv
 from google import genai
 
+load_dotenv()
 
 MODEL_NAME = os.getenv(
     "GEMINI_MODEL",
@@ -10,7 +11,6 @@ MODEL_NAME = os.getenv(
 
 
 def get_client():
-
     api_key = os.getenv("GEMINI_API_KEY")
 
     if not api_key:
@@ -21,14 +21,7 @@ def get_client():
     return genai.Client(api_key=api_key)
 
 
-def generate_fitness_plan(
-    name,
-    age,
-    weight,
-    goal,
-    intensity
-):
-
+def generate_fitness_plan(name, age, weight, goal, intensity):
     client = get_client()
 
     prompt = f"""
@@ -37,7 +30,6 @@ You are FitBuddy, an AI fitness planning assistant.
 Create a personalized 7-day fitness plan.
 
 User details:
-
 Name: {name}
 Age: {age}
 Weight: {weight} kg
@@ -45,7 +37,6 @@ Fitness goal: {goal}
 Workout intensity: {intensity}
 
 Requirements:
-
 1. Create Day 1 through Day 7.
 2. Include suitable exercises.
 3. Mention approximate duration.
@@ -69,28 +60,21 @@ Return only the fitness plan.
     return response.text
 
 
-def update_fitness_plan(
-    old_plan,
-    feedback
-):
-
+def update_fitness_plan(old_plan, feedback):
     client = get_client()
 
     prompt = f"""
 You are FitBuddy, an AI fitness planning assistant.
 
 Existing plan:
-
 {old_plan}
 
 User feedback:
-
 {feedback}
 
 Create an updated 7-day fitness plan.
 
 Requirements:
-
 1. Keep useful parts of the original plan.
 2. Apply the user's feedback.
 3. Show Day 1 through Day 7.
@@ -110,13 +94,11 @@ Requirements:
 
 
 def generate_goal_tip(goal):
-
     client = get_client()
 
     prompt = f"""
 Provide one short and practical nutrition or recovery tip
 for a person whose fitness goal is:
-
 {goal}
 
 Keep the advice general, safe and easy to understand.
